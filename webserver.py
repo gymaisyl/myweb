@@ -1,5 +1,6 @@
 import socket
 import multiprocessing
+import threading
 import re
 
 
@@ -58,8 +59,10 @@ def main():
         """等待客户端连接"""
         client_socket, client_addr = tcp_server_socket.accept()
 
-        p = multiprocessing.Process(target=service_client, args=(client_socket,))
-        p.start()
+        # p = multiprocessing.Process(target=service_client, args=(client_socket,))
+        # p.start()
+        t = threading.Thread(target=service_client, args=(client_socket, ))
+        t.start()
 
         """实现多进程完成web
         子进程的资源不是共享的
@@ -68,7 +71,7 @@ def main():
         在子进程的client_socket关闭后，指向的fd并没有消失，
         客户端就不知道4此挥手结束，
         那么客户端就会一直等待"""
-        client_socket.close()
+        # client_socket.close()
 
         # service_client(client_socket)
 
