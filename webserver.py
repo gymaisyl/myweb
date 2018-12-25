@@ -33,21 +33,33 @@ def service_client(client_socket):
     try:
         f = open("./" + file_name, "rb")
     except:
-        response = "HTTP/1.1 404 NOT FOUND\r\n"
-        response += "\r\n"
-        response += "the page is not found"
-        client_socket.send(response.encode("utf-8"))
+        response_body = "the page is not found"
+        response_body = response_body.encode("utf-8")
+        response_header = "HTTP/1.1 404 not found\r\n"
+        response_header += "Content-Length: %d\r\n" % (len(response_body))
+        response_header += "\r\n"
+
+        # 发送response_header
+        response = response_header.encode("utf-8") + response_body
+        # 发送response_body
+        client_socket.send(response)
+
     else:
-        response = "HTTP/1.1 200 OK\r\n"  # 这里的\r\n是作为换行
-        response += "\r\n"  # 请求头和请求体之间的空格
         html_content = f.read()
         f.close()
-        # 发送response_header
-        client_socket.send(response.encode("utf-8"))
-        # 发送response_body
-        client_socket.send(html_content)
+        response_body = html_content
 
-    client_socket.close()  # 套接字关闭
+        response_header = "HTTP/1.1 200 OK\r\n"  # 这里的\r\n是作为换行
+        # 告诉浏览器response_body的长度
+        response_header += "Content-Length: %d\r\n" % (len(response_body))
+        response_header += "\r\n"  # 请求头和请求体之间的空格
+
+        # 发送response_header
+        response = response_header.encode("utf-8") + response_body
+        # 发送response_body
+        client_socket.send(response)
+
+    # client_socket.close()  # 套接字关闭
 
 
 def main():
