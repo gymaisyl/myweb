@@ -1,20 +1,21 @@
 import socket
-import multiprocessing
-import threading
+
 import re
 
 import gevent
+import select
 from gevent import monkey
 
-
+"""epoll核心：
+内存共享，事件通知"""
 monkey.patch_all()
 
 
-def service_client(client_socket):
+def service_client(client_socket, request):
     # 处理客户端请求
 
     # 1.接收浏览器发送的请求 GET /HTTP/1.1
-    request = client_socket.recv(1024).decode()
+    # request = client_socket.recv(1024).decode()
     print(request)
 
     request_lines = request.splitlines()
@@ -73,11 +74,32 @@ def main():
     # 设置为被动连接模式
     tcp_server_socket.listen(128)
 
-    while True:
-        """等待客户端连接"""
-        client_socket, client_addr = tcp_server_socket.accept()
+    # 创建epoll对象
+    epl = select.epoll()
 
-        gevent.spawn(service_client, client_socket)
+    # 将监听套接字的文件描述符传给epoll中进行监听
+    epl.register((tcp_server_socket.fileno(), select.EPOLLIN))
+    fd_event_dict = dict()
+
+    while True:
+        fd_event_list = epl.poll()  # 默认会阻塞，直到os检测到数据到来，通过事件通知的方式，告诉这个程序，此时才会解阻塞
+
+        for fd, event in fd_event_list:
+            if fd == tcp_server_socket.fileno():
+                client_socket, client_addr = tcp_server_socket.accept()
+                epl.register((tcp_server_socket.fileno(), select.EPOLLIN))
+                fd_event_dict[client_socket.fileno()] = client_socket
+
+            elif event == select.EPOLLIN:
+                recv_data = fd_event_dict[fd].recv(1024).decode("utf-8")
+                if recv_data:
+                    service_client(fd_event_dict[fd], recv_data)
+
+                else:
+                    fd_event_dict[fd].close()
+                    epl.unregister(fd)
+                    del fd_event_dict[fd]
+        """等待客户端连接"""
 
     tcp_server_socket.close()
 
