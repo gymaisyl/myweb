@@ -68,9 +68,12 @@ class WSGIServer(object):
                 client_socket.send(response)
 
         else:
+            # 2.2 如果是以.py结尾，那么就认为是动态资源的请求
+
             env = dict()  # 这个字典中存放的是web服务器要传递给 web框架的数据信息
             env['PATH_INFO'] = file_name
             # {"PATH_INFO": "/index.py"}
+            # body = dynamic.mini_frame.application(env, self.set_response_header)
             body = webframe.application(env, self.set_response_header)
 
             header = "HTTP/1.1 %s\r\n" % self.status

@@ -1,9 +1,42 @@
+import re
+
+"""
+URL_FUNC_DICT = {
+    "/index.py": index,
+    "/center.py": center
+}
+"""
+
+URL_FUNC_DICT = dict()
+
+
+def route(url):
+    def set_func(func):
+        # URL_FUNC_DICT["/index.py"] = index
+        URL_FUNC_DICT[url] = func
+
+        def call_func(*args, **kwargs):
+            return func(*args, **kwargs)
+
+        return call_func
+
+    return set_func
+
+
+@route("/index.py")
 def index():
-    return "这是主页"
+    with open("./index.html") as f:
+        content = f.read()
+
+    return content
 
 
-def login():
-    return "这是登录页面"
+@route("/center.py")
+def center():
+    with open("./center.html") as f:
+        content = f.read()
+
+    return content
 
 
 def application(env, start_response):
@@ -12,9 +45,24 @@ def application(env, start_response):
     file_name = env['PATH_INFO']
     # file_name = "/index.py"
 
+    """
     if file_name == "/index.py":
         return index()
-    elif file_name == "/login.py":
-        return login()
+    elif file_name == "/center.py":
+        return center()
     else:
         return 'Hello World! 我爱你中国....'
+    """
+
+    try:
+        # func = URL_FUNC_DICT[file_name]
+        # return func()
+        return URL_FUNC_DICT[file_name]()
+    except Exception as ret:
+        return "产生了异常：%s" % str(ret)
+
+
+
+
+
+
